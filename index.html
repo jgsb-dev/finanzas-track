@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -834,7 +835,14 @@ document.querySelectorAll('.period-btn').forEach(btn=>{btn.addEventListener('cli
 /* ============================================================
    SAVINGS MODULE
    ============================================================ */
-const SAVINGS_KEY = 'savingstrack_v1';
+/* ===== Supabase client ===== */
+const SB_URL = 'https://tbjrycyrlmdkxwkaqile.supabase.co';
+const SB_KEY = 'sb_publishable_JL3rAUwCKTk31Z-YlLWaoQ_G2BRdsbV';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+/* In-memory state (replaces localStorage) */
+let svState = null;
+let svInitialized = false;
 
 const GOALS_DEFAULT = [
   {id:'alquiler',   name:'Alquiler',            icon:'🏠',color:'#F59E0B',targetPercent:30,targetAmount:0,active:true },
@@ -850,10 +858,87 @@ const GOALS_DEFAULT = [
 ];
 
 function loadSV(){
-  try{const r=localStorage.getItem(SAVINGS_KEY);if(r)return JSON.parse(r);}catch(e){}
+  if(svState) return svState;
   return{goals:JSON.parse(JSON.stringify(GOALS_DEFAULT)),accounts:[],contributions:[],settings:{income:{jesus:0,natasha:0}},lastUsed:{userId:'jesus',accountId:null}};
 }
-function saveSV(d){try{localStorage.setItem(SAVINGS_KEY,JSON.stringify(d));}catch(e){}}
+function saveSV(d){
+  svState=d;
+  // Persist lastUsed preference locally (non-critical)
+  try{localStorage.setItem('sv_lastused',JSON.stringify(d.lastUsed));}catch(e){}
+  syncToSupabase(d);
+}
+
+/* ===== Load all data from Supabase into svState ===== */
+async function initSupabase(){
+  if(svInitialized)return savingsRefresh();
+  showSavingsLoader(true);
+  try{
+    const [goalsRes,accountsRes,contribsRes,allocsRes,incomeRes]=await Promise.all([
+      sb.from('goals').select('*').order('sort_order'),
+      sb.from('accounts').select('*'),
+      sb.from('contributions').select('*').order('date',{ascending:false}).order('created_at',{ascending:false}),
+      sb.from('contribution_allocations').select('*'),
+      sb.from('income_settings').select('*'),
+    ]);
+    // Group allocations by contribution_id
+    const allocMap={};
+    (allocsRes.data||[]).forEach(a=>{
+      if(!allocMap[a.contribution_id])allocMap[a.contribution_id]=[];
+      allocMap[a.contribution_id].push(a);
+    });
+    const contributions=(contribsRes.data||[]).map(c=>{
+      const allocs=allocMap[c.id]||[];
+      const allocation={},goalMeta={};
+      allocs.forEach(a=>{allocation[a.goal_id]=parseFloat(a.amount);goalMeta[a.goal_id]={name:a.goal_name,icon:a.goal_icon,color:a.goal_color};});
+      return{id:c.id,date:c.date,amount:parseFloat(c.amount),userId:c.user_id,accountId:c.account_id,note:c.note||'',allocation,goalMeta};
+    });
+    const dbGoals=goalsRes.data||[];
+    const goals=dbGoals.length>0
+      ?dbGoals.map(g=>({id:g.id,name:g.name,icon:g.icon,color:g.color,targetPercent:parseFloat(g.target_percent),targetAmount:parseFloat(g.target_amount),active:g.active,completedAt:g.completed_at||undefined,completedPercent:parseFloat(g.completed_percent)||0}))
+      :JSON.parse(JSON.stringify(GOALS_DEFAULT));
+    const accounts=(accountsRes.data||[]).map(a=>({id:a.id,name:a.name,bank:a.bank||'',userId:a.user_id,balance:parseFloat(a.balance)||0}));
+    const income=incomeRes.data||[];
+    const lastUsed=JSON.parse(localStorage.getItem('sv_lastused')||'{"userId":"jesus","accountId":null}');
+    svState={goals,accounts,contributions,settings:{income:{jesus:parseFloat(income.find(i=>i.user_id==='jesus')?.amount)||0,natasha:parseFloat(income.find(i=>i.user_id==='natasha')?.amount)||0}},lastUsed};
+    // If DB had no goals, seed defaults now
+    if(!dbGoals.length)await sb.from('goals').insert(svState.goals.map((g,i)=>({id:g.id,name:g.name,icon:g.icon,color:g.color,target_percent:g.targetPercent,target_amount:g.targetAmount,active:g.active,completed_percent:0,sort_order:i})));
+    svInitialized=true;
+  }catch(err){
+    console.error('Supabase init error:',err);
+    showToast('Error conectando a Supabase');
+  }
+  showSavingsLoader(false);
+  savingsRefresh();
+}
+
+function showSavingsLoader(show){
+  let el=document.getElementById('sv-loader');
+  if(!el){
+    el=document.createElement('div');el.id='sv-loader';
+    el.style.cssText='position:fixed;inset:0;background:rgba(8,8,26,0.7);display:flex;align-items:center;justify-content:center;z-index:200;font-size:1rem;font-weight:700;color:#A5B4FC;letter-spacing:1px;backdrop-filter:blur(4px);';
+    el.textContent='Conectando a Supabase…';
+    document.body.appendChild(el);
+  }
+  el.style.display=show?'flex':'none';
+}
+
+/* ===== Sync in-memory state to Supabase ===== */
+async function syncToSupabase(sv){
+  try{
+    // Goals
+    await sb.from('goals').upsert(sv.goals.map((g,i)=>({id:g.id,name:g.name,icon:g.icon,color:g.color,target_percent:g.targetPercent,target_amount:g.targetAmount,active:g.active,completed_at:g.completedAt||null,completed_percent:g.completedPercent||0,sort_order:i})));
+    // Accounts
+    if(sv.accounts.length)await sb.from('accounts').upsert(sv.accounts.map(a=>({id:a.id,name:a.name,bank:a.bank||null,user_id:a.userId,balance:a.balance||0})));
+    // Contributions + allocations
+    if(sv.contributions.length){
+      await sb.from('contributions').upsert(sv.contributions.map(c=>({id:c.id,date:c.date,amount:c.amount,user_id:c.userId,account_id:c.accountId||null,note:c.note||null})));
+      const allocRows=sv.contributions.flatMap(c=>Object.entries(c.allocation||{}).filter(([,v])=>v>0).map(([gid,amt])=>({contribution_id:c.id,goal_id:gid,amount:amt,goal_name:c.goalMeta?.[gid]?.name||'',goal_icon:c.goalMeta?.[gid]?.icon||'',goal_color:c.goalMeta?.[gid]?.color||''})));
+      if(allocRows.length)await sb.from('contribution_allocations').upsert(allocRows,{onConflict:'contribution_id,goal_id'});
+    }
+    // Income
+    await sb.from('income_settings').upsert([{user_id:'jesus',amount:sv.settings.income.jesus||0},{user_id:'natasha',amount:sv.settings.income.natasha||0}]);
+  }catch(err){console.error('Supabase sync error:',err);}
+}
 
 /* Distribute a total amount across active goals by percentage */
 function distributeAmount(amount, goals){
@@ -1283,7 +1368,9 @@ function deleteContrib(id){
   // Reverse account balance
   if(c.accountId){const acc=sv.accounts.find(a=>a.id===c.accountId);if(acc)acc.balance=Math.max(0,Math.round(((acc.balance||0)-c.amount)*100)/100);}
   sv.contributions=sv.contributions.filter(x=>x.id!==id);
-  saveSV(sv);savingsRefresh();showToast('Aportación eliminada');
+  saveSV(sv);
+  sb.from('contributions').delete().eq('id',id).then(({error})=>{if(error)console.error('Delete contrib error:',error);});
+  savingsRefresh();showToast('Aportación eliminada');
 }
 document.getElementById('contrib-filter-user').addEventListener('change',renderContribHistory);
 
@@ -1403,7 +1490,9 @@ function openAccountModal(id=null){
   document.getElementById('account-modal').classList.add('open');
 }
 function deleteAccount(id){
-  const sv=loadSV();sv.accounts=sv.accounts.filter(a=>a.id!==id);saveSV(sv);renderAccountsGrid();populateAccountSelect();showToast('Cuenta eliminada');
+  const sv=loadSV();sv.accounts=sv.accounts.filter(a=>a.id!==id);saveSV(sv);
+  sb.from('accounts').delete().eq('id',id).then(({error})=>{if(error)console.error('Delete account error:',error);});
+  renderAccountsGrid();populateAccountSelect();showToast('Cuenta eliminada');
 }
 document.getElementById('account-modal-close').addEventListener('click',()=>document.getElementById('account-modal').classList.remove('open'));
 document.getElementById('account-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('open');});
@@ -1519,7 +1608,7 @@ document.querySelectorAll('.mode-btn').forEach(btn=>{
     document.getElementById('nav-right-gastos').style.display=isG?'':'none';
     document.getElementById('nav-right-savings').style.display=isG?'none':'';
     window.scrollTo({top:0,behavior:'smooth'});
-    if(!isG)savingsRefresh();
+    if(!isG)initSupabase();
   });
 });
 
