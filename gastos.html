@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GastoTrack — Control de Finanzas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ===== RESET & VARIABLES ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-base:      #08081A;
+      --bg-surface:   #0E0E24;
+      --bg-card:      #14142E;
+      --bg-elevated:  #1E1E42;
+      --bg-input:     #0A0A20;
+
+      --grad-primary:   linear-gradient(135deg, #6366F1 0%, #A855F7 50%, #EC4899 100%);
+      --grad-secondary: linear-gradient(135deg, #3B82F6 0%, #10B981 100%);
+      --grad-warm:      linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+
+      --accent-1: #6366F1;
+      --accent-2: #A855F7;
+      --accent-3: #EC4899;
+
+      --text-primary:   #F0F4FF;
+      --text-secondary: #8892B0;
+      --text-muted:     #4A5568;
+
+      --border:       rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.15);
+      --border-focus: rgba(99,102,241,0.6);
+
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger:  #EF4444;
+      --info:    #3B82F6;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-xl: 32px;
+
+      --t: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      --t-slow: 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+
+    /* ===== NAVIGATION ===== */
+    #main-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px;
+      height: 64px;
+      background: rgba(8,8,26,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.15rem; letter-spacing: -0.5px;
+    }
+    .brand-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--grad-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link {
+      padding: 7px 16px; border-radius: var(--radius-sm);
+      color: var(--text-secondary); text-decoration: none;
+      font-size: 0.9rem; font-weight: 500;
+      transition: color var(--t), background var(--t);
+    }
+    .nav-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+    .nav-link.active { color: var(--text-primary); background: rgba(99,102,241,0.15); }
+    .nav-total {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.88rem; color: var(--text-secondary);
+    }
+    #nav-total-amount {
+      font-weight: 700; font-size: 1rem;
+      background: var(--grad-primary);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ===== SECTION BASE ===== */
+    section { min-height: 100vh; padding: 80px 32px; }
+
+    /* ===== HOME SECTION ===== */
+    #home {
+      display: flex; align-items: center;
+      background:
+        radial-gradient(ellipse 90% 70% at 15% 50%, rgba(99,102,241,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 90% at 85% 15%, rgba(168,85,247,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 60% at 50% 90%, rgba(236,72,153,0.06) 0%, transparent 55%),
+        var(--bg-base);
+    }
+    .home-layout {
+      max-width: 1200px; margin: 0 auto; width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+    }
+    .home-hero { }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 100px; padding: 6px 14px;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px;
+      color: #A5B4FC; margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+    .hero-badge span { width: 6px; height: 6px; background: #6366F1; border-radius: 50%; }
+    .hero-title {
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 900; line-height: 1.08; letter-spacing: -2px;
+      margin-bottom: 20px;
+    }
+    .hero-title .gradient-text {
+      background: var(--grad-primary);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-subtitle {
+      font-size: 1.05rem; color: var(--text-secondary);
+      line-height: 1.6; margin-bottom: 40px; max-width: 420px;
+    }
+    .hero-stats { display: flex; gap: 32px; }
+    .hero-stat { }
+    .hero-stat-value {
+      font-size: 1.8rem; font-weight: 800; letter-spacing: -1px;
+      background: var(--grad-secondary);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ===== FORM CARD ===== */
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      box-shadow: var(--shadow-card), var(--shadow-glow);
+      position: relative; overflow: hidden;
+    }
+    .form-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--grad-primary);
+    }
+    .form-title {
+      font-size: 1.2rem; font-weight: 700; margin-bottom: 6px;
+    }
+    .form-subtitle { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label {
+      display: block; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 8px; letter-spacing: 0.3px;
+    }
+    input, select, textarea {
+      width: 100%; padding: 12px 16px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-primary);
+      font-family: inherit; font-size: 0.95rem;
+      transition: border-color var(--t), box-shadow var(--t);
+      outline: none; -webkit-appearance: none; appearance: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); cursor: pointer; }
+    select { cursor: pointer; }
+    select option { background: var(--bg-card); }
+
+    .amount-wrapper { position: relative; }
+    .amount-prefix {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--text-secondary); font-weight: 600; pointer-events: none;
+    }
+    .amount-wrapper input { padding-left: 36px; }
+
+    #submit-btn {
+      width: 100%; padding: 15px 28px;
+      background: var(--grad-primary);
+      border: none; border-radius: var(--radius-md);
+      color: white; font-family: inherit; font-size: 1rem; font-weight: 700;
+      letter-spacing: 0.3px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      position: relative; overflow: hidden;
+      transition: transform var(--t), opacity var(--t);
+      margin-top: 8px;
+    }
+    #submit-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(255,255,255,0.1); opacity: 0;
+      transition: opacity var(--t);
+    }
+    #submit-btn:hover { transform: translateY(-2px); }
+    #submit-btn:hover::after { opacity: 1; }
+    #submit-btn:active { transform: translateY(0); }
+    .btn-icon { font-size: 1.3rem; font-weight: 300; }
+
+    /* ===== DASHBOARD SECTION ===== */
+    #dashboard {
+      background:
+        radial-gradient(ellipse 80% 50% at 80% 20%, rgba(99,102,241,0.06) 0%, transparent 55%),
+        var(--bg-surface);
+    }
+    .section-header { max-width: 1200px; margin: 0 auto 40px; }
+    .section-title { font-size: 2rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
+    .section-subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+    /* ===== KPI CARDS ===== */
+    .kpi-grid {
+      max-width: 1200px; margin: 0 auto 32px;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+    .kpi-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 24px;
+      transition: border-color var(--t), transform var(--t);
+      position: relative; overflow: hidden;
+    }
+    .kpi-card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+    .kpi-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; width: 3px; height: 100%;
+    }
+    .kpi-card:nth-child(1)::before { background: var(--grad-primary); }
+    .kpi-card:nth-child(2)::before { background: var(--grad-secondary); }
+    .kpi-card:nth-child(3)::before { background: var(--grad-warm); }
+    .kpi-card:nth-child(4)::before { background: linear-gradient(180deg, #A855F7, #EC4899); }
+    .kpi-icon { font-size: 1.4rem; margin-bottom: 12px; }
+    .kpi-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -1px; }
+    .kpi-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+    .kpi-change { font-size: 0.78rem; margin-top: 4px; font-weight: 600; }
+    .kpi-change.up { color: var(--danger); }
+    .kpi-change.down { color: var(--success); }
+
+    /* ===== CHARTS ROW ===== */
+    .charts-row {
+      max-width: 1200px; margin: 0 auto 32px;
+      display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px;
+    }
+    .chart-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 28px;
+      transition: border-color var(--t);
+    }
+    .chart-card:hover { border-color: var(--border-hover); }
+    .chart-title { font-size: 1rem; font-weight: 700; margin-bottom: 20px; }
+    .chart-wrapper {
+      position: relative; height: 220px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #pie-chart { max-height: 220px; }
+    #bar-chart { max-height: 220px; }
+    .pie-center-text {
+      position: absolute; text-align: center; pointer-events: none;
+    }
+    .pie-center-label { font-size: 0.72rem; color: var(--text-muted); }
+    .pie-center-value { font-size: 1.3rem; font-weight: 800; }
+
+    .period-btns { display: flex; gap: 6px; margin-bottom: 16px; }
+    .period-btn {
+      padding: 5px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-secondary); font-family: inherit; font-size: 0.8rem;
+      cursor: pointer; transition: all var(--t);
+    }
+    .period-btn.active {
+      background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.4);
+      color: #A5B4FC;
+    }
+
+    .pie-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+    .legend-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.82rem;
+    }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-name { color: var(--text-secondary); flex: 1; }
+    .legend-amount { font-weight: 600; }
+    .legend-pct { color: var(--text-muted); font-size: 0.75rem; min-width: 36px; text-align: right; }
+
+    /* ===== EXPENSE LIST ===== */
+    .list-card {
+      max-width: 1200px; margin: 0 auto;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .list-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 24px 28px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 16px;
+    }
+    .list-header h3 { font-size: 1rem; font-weight: 700; }
+    .list-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+    .list-controls input, .list-controls select {
+      width: auto; min-width: 140px; padding: 8px 14px; font-size: 0.85rem;
+    }
+    #expense-list { max-height: 400px; overflow-y: auto; }
+    .expense-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 28px; border-bottom: 1px solid var(--border);
+      transition: background var(--t);
+    }
+    .expense-row:last-child { border-bottom: none; }
+    .expense-row:hover { background: rgba(255,255,255,0.03); }
+    .cat-pill {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    }
+    .expense-info { flex: 1; min-width: 0; }
+    .expense-desc { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .expense-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+    .expense-amount { font-size: 0.95rem; font-weight: 700; min-width: 100px; text-align: right; }
+    .delete-btn {
+      width: 30px; height: 30px; border-radius: var(--radius-sm);
+      border: none; background: transparent; color: var(--text-muted);
+      cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+      transition: background var(--t), color var(--t); flex-shrink: 0;
+    }
+    .delete-btn:hover { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+    .empty-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+    .empty-sub { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* ===== TIPS SECTION ===== */
+    #tips {
+      background:
+        radial-gradient(ellipse 70% 60% at 30% 80%, rgba(168,85,247,0.07) 0%, transparent 55%),
+        var(--bg-base);
+    }
+    .tips-grid {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;
+    }
+    .tip-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 28px;
+      position: relative; overflow: hidden;
+      transition: border-color var(--t), transform var(--t);
+    }
+    .tip-card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+    .tip-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    }
+    .tip-card.info::before    { background: var(--info); }
+    .tip-card.warning::before { background: var(--warning); }
+    .tip-card.success::before { background: var(--success); }
+    .tip-card.danger::before  { background: var(--danger); }
+    .tip-icon { font-size: 1.8rem; margin-bottom: 14px; }
+    .tip-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 100px; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+    }
+    .tip-badge.info    { background: rgba(59,130,246,0.15); color: #93C5FD; }
+    .tip-badge.warning { background: rgba(245,158,11,0.15); color: #FCD34D; }
+    .tip-badge.success { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+    .tip-badge.danger  { background: rgba(239,68,68,0.15);  color: #FCA5A5; }
+    .tip-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .tip-body  { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; }
+
+    /* ===== TOAST ===== */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--bg-elevated); border: 1px solid var(--border-hover);
+      border-radius: var(--radius-md); padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999; min-width: 280px; box-shadow: var(--shadow-card);
+    }
+    #toast.visible { transform: translateX(-50%) translateY(0); }
+    .toast-message { font-size: 0.88rem; flex: 1; }
+    .toast-action {
+      font-size: 0.82rem; font-weight: 700; color: #A5B4FC;
+      cursor: pointer; background: none; border: none;
+      font-family: inherit; padding: 4px 8px; border-radius: 4px;
+      transition: background var(--t);
+    }
+    .toast-action:hover { background: rgba(99,102,241,0.15); }
+
+    /* ===== FLOATING ORBS (decorative) ===== */
+    .orb {
+      position: fixed; border-radius: 50%; pointer-events: none;
+      filter: blur(80px); opacity: 0.04; z-index: 0;
+    }
+    .orb-1 { width: 500px; height: 500px; background: #6366F1; top: -100px; right: -100px; }
+    .orb-2 { width: 400px; height: 400px; background: #A855F7; bottom: 10%; left: -80px; }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeInUp 0.5s ease both; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      #main-nav { padding: 0 20px; }
+      .nav-total { display: none; }
+      section { padding: 60px 20px; }
+      .home-layout { grid-template-columns: 1fr; gap: 48px; }
+      .hero-stats { gap: 20px; }
+      .form-row { grid-template-columns: 1fr; }
+      .list-header { flex-direction: column; align-items: flex-start; }
+      .list-controls { width: 100%; }
+      .list-controls input, .list-controls select { flex: 1; min-width: 0; }
+    }
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .nav-links .nav-link { padding: 7px 10px; font-size: 0.82rem; }
+      .expense-row { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Decorative orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- NAVIGATION -->
+<nav id="main-nav">
+  <div class="nav-brand">
+    <div class="brand-icon">◈</div>
+    <span>GastoTrack</span>
+  </div>
+  <div class="nav-links">
+    <a href="#home"      class="nav-link active">Inicio</a>
+    <a href="#dashboard" class="nav-link">Dashboard</a>
+    <a href="#tips"      class="nav-link">Consejos</a>
+  </div>
+  <div class="nav-total">
+    <span>Total mes:</span>
+    <span id="nav-total-amount">$0</span>
+  </div>
+</nav>
+
+<!-- HOME SECTION -->
+<section id="home">
+  <div class="home-layout">
+    <div class="home-hero">
+      <div class="hero-badge"><span></span> Control financiero inteligente</div>
+      <h1 class="hero-title">
+        Toma control de<br>
+        <span class="gradient-text">tus finanzas</span>
+      </h1>
+      <p class="hero-subtitle">
+        Registra tus gastos por categoría, visualiza tus patrones de consumo
+        y recibe consejos personalizados para mejorar tu salud financiera.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="stat-total">$0</div>
+          <div class="hero-stat-label">Este mes</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="stat-count">0</div>
+          <div class="hero-stat-label">Gastos registrados</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="stat-cats">0</div>
+          <div class="hero-stat-label">Categorías activas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-title">Nuevo gasto</div>
+      <div class="form-subtitle">Ingresa los detalles de tu gasto</div>
+      <form id="expense-form">
+        <div class="form-group">
+          <label for="f-amount">Cantidad</label>
+          <div class="amount-wrapper">
+            <span class="amount-prefix">$</span>
+            <input type="number" id="f-amount" placeholder="0.00" min="0.01" step="0.01" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-category">Categoría</label>
+            <select id="f-category" required></select>
+          </div>
+          <div class="form-group">
+            <label for="f-date">Fecha</label>
+            <input type="date" id="f-date" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-description">Descripción</label>
+          <input type="text" id="f-description" placeholder="¿En qué gastaste?" maxlength="80" required>
+        </div>
+        <button type="submit" id="submit-btn">
+          <span>Agregar Gasto</span>
+          <span class="btn-icon">+</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD SECTION -->
+<section id="dashboard">
+  <div class="section-header">
+    <h2 class="section-title">Dashboard</h2>
+    <p class="section-subtitle">Visualiza y analiza tus gastos en tiempo real</p>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-label">Total este mes</div>
+      <div class="kpi-value" id="kpi-total">$0</div>
+      <div class="kpi-sub" id="kpi-total-sub">Sin gastos aún</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Promedio diario</div>
+      <div class="kpi-value" id="kpi-avg">$0</div>
+      <div class="kpi-sub" id="kpi-avg-sub">Este mes</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-label">Mayor categoría</div>
+      <div class="kpi-value" id="kpi-top-cat">—</div>
+      <div class="kpi-sub" id="kpi-top-sub">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🧾</div>
+      <div class="kpi-label">Gastos este mes</div>
+      <div class="kpi-value" id="kpi-count">0</div>
+      <div class="kpi-change" id="kpi-change"></div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Distribución por categoría</div>
+      <div class="chart-wrapper">
+        <canvas id="pie-chart"></canvas>
+        <div class="pie-center-text" id="pie-center">
+          <div class="pie-center-value" id="pie-center-val">$0</div>
+          <div class="pie-center-label">total</div>
+        </div>
+      </div>
+      <div class="pie-legend" id="pie-legend"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Gastos por mes</div>
+      <div class="period-btns">
+        <button class="period-btn active" data-period="6">6 meses</button>
+        <button class="period-btn" data-period="12">12 meses</button>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="bar-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense List -->
+  <div class="list-card">
+    <div class="list-header">
+      <h3>Historial de gastos</h3>
+      <div class="list-controls">
+        <input type="search" id="list-search" placeholder="Buscar...">
+        <select id="list-filter-cat">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="list-sort">
+          <option value="date-desc">Más reciente</option>
+          <option value="date-asc">Más antiguo</option>
+          <option value="amount-desc">Mayor monto</option>
+          <option value="amount-asc">Menor monto</option>
+        </select>
+      </div>
+    </div>
+    <div id="expense-list"></div>
+  </div>
+</section>
+
+<!-- TIPS SECTION -->
+<section id="tips">
+  <div class="section-header">
+    <h2 class="section-title">Consejos financieros</h2>
+    <p class="section-subtitle">Recomendaciones personalizadas basadas en tus gastos</p>
+  </div>
+  <div class="tips-grid" id="tips-grid"></div>
+</section>
+
+<!-- TOAST -->
+<div id="toast">
+  <span class="toast-message" id="toast-msg"></span>
+  <button class="toast-action" id="toast-action" style="display:none"></button>
+</div>
+
+<script>
+/* ===== CONFIG & CONSTANTS ===== */
+const STORAGE_KEY = 'gastotrack_v1';
+
+const CATEGORIES = [
+  { name: 'Alimentación',     icon: '🍔', color: '#FF6B6B' },
+  { name: 'Transporte',       icon: '🚗', color: '#4ECDC4' },
+  { name: 'Entretenimiento',  icon: '🎮', color: '#A855F7' },
+  { name: 'Salud',            icon: '💊', color: '#10B981' },
+  { name: 'Educación',        icon: '📚', color: '#3B82F6' },
+  { name: 'Hogar',            icon: '🏠', color: '#F59E0B' },
+  { name: 'Ropa',             icon: '👗', color: '#EC4899' },
+  { name: 'Otros',            icon: '📦', color: '#6B7280' },
+];
+
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.name, c]));
+
+/* ===== DATA LAYER ===== */
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { expenses: [] };
+}
+
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function addExpense(expense) {
+  const data = loadData();
+  data.expenses.unshift(expense);
+  saveData(data);
+  refresh();
+}
+
+function deleteExpense(id) {
+  const data = loadData();
+  data.expenses = data.expenses.filter(e => e.id !== id);
+  saveData(data);
+  refresh();
+}
+
+function undoDelete(expense) {
+  const data = loadData();
+  data.expenses.push(expense);
+  data.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+  saveData(data);
+  refresh();
+}
+
+/* ===== COMPUTED METRICS ===== */
+function getMonthKey(dateStr) {
+  return dateStr.substring(0, 7); // "YYYY-MM"
+}
+
+function thisMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getThisMonthExpenses(expenses) {
+  const mk = thisMonthKey();
+  return expenses.filter(e => getMonthKey(e.date) === mk);
+}
+
+function getTotalByCategory(expenses) {
+  const totals = {};
+  expenses.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.amount; });
+  return totals;
+}
+
+function getMonthlyTotals(expenses, n) {
+  const months = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' });
+    const total = expenses.filter(e => getMonthKey(e.date) === key).reduce((s, e) => s + e.amount, 0);
+    months.push({ key, label, total });
+  }
+  return months;
+}
+
+function getDaysInCurrentMonth() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+}
+
+function getMonthOverMonthChange(expenses) {
+  const now = new Date();
+  const thisKey = thisMonthKey();
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`;
+  const thisMo = expenses.filter(e => getMonthKey(e.date) === thisKey).reduce((s,e) => s + e.amount, 0);
+  const prevMo = expenses.filter(e => getMonthKey(e.date) === prevKey).reduce((s,e) => s + e.amount, 0);
+  if (prevMo === 0) return null;
+  return ((thisMo - prevMo) / prevMo) * 100;
+}
+
+/* ===== FORMAT HELPERS ===== */
+const fmtCurrency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmtCurrencyFull = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+const fmtDate = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+
+function fc(n) { return fmtCurrency.format(n); }
+function fd(s) { return fmtDate.format(new Date(s + 'T12:00:00')); }
+
+/* ===== CHART INSTANCES ===== */
+let pieChart = null;
+let barChart = null;
+let currentPeriod = 6;
+
+Chart.defaults.color = '#8892B0';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+function renderPieChart(expenses) {
+  const catTotals = getTotalByCategory(getThisMonthExpenses(expenses));
+  const cats = CATEGORIES.filter(c => catTotals[c.name]);
+  const total = cats.reduce((s, c) => s + (catTotals[c.name] || 0), 0);
+
+  document.getElementById('pie-center-val').textContent = fc(total);
+
+  const canvas = document.getElementById('pie-chart');
+  if (pieChart) { pieChart.destroy(); pieChart = null; }
+
+  if (cats.length === 0) {
+    // Show placeholder
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('pie-legend').innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem">Sin datos este mes</p>';
+    return;
+  }
+
+  pieChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: cats.map(c => c.name),
+      datasets: [{
+        data: cats.map(c => catTotals[c.name]),
+        backgroundColor: cats.map(c => c.color),
+        borderColor: 'rgba(20,20,46,1)',
+        borderWidth: 3,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${fmtCurrencyFull.format(ctx.parsed)}`
+          }
+        }
+      },
+      animation: { animateRotate: true, duration: 700 }
+    }
+  });
+
+  // Custom legend
+  const legendEl = document.getElementById('pie-legend');
+  legendEl.innerHTML = cats.map(c => {
+    const amt = catTotals[c.name] || 0;
+    const pct = total > 0 ? Math.round((amt / total) * 100) : 0;
+    return `<div class="legend-item">
+      <span class="legend-dot" style="background:${c.color}"></span>
+      <span class="legend-name">${c.name}</span>
+      <span class="legend-amount">${fc(amt)}</span>
+      <span class="legend-pct">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderBarChart(expenses) {
+  const monthly = getMonthlyTotals(expenses, currentPeriod);
+  const canvas = document.getElementById('bar-chart');
+  if (barChart) { barChart.destroy(); barChart = null; }
+
+  barChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: monthly.map(m => m.label),
+      datasets: [{
+        data: monthly.map(m => m.total),
+        backgroundColor: monthly.map((m, i) => {
+          const isCurrent = m.key === thisMonthKey();
+          return isCurrent ? 'rgba(99,102,241,0.85)' : 'rgba(99,102,241,0.28)';
+        }),
+        borderColor: monthly.map(m => m.key === thisMonthKey() ? '#818CF8' : 'transparent'),
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { callback: v => `$${v.toLocaleString('es-MX')}` }
+        }
+      },
+      plugins: { legend: { display: false } },
+      animation: { duration: 600 }
+    }
+  });
+}
+
+/* ===== KPI CARDS ===== */
+function renderKPIs(expenses) {
+  const thisMonth = getThisMonthExpenses(expenses);
+  const total = thisMonth.reduce((s, e) => s + e.amount, 0);
+  const days = getDaysInCurrentMonth();
+  const avg = thisMonth.length > 0 ? total / new Date().getDate() : 0;
+
+  const catTotals = getTotalByCategory(thisMonth);
+  const topCatName = Object.entries(catTotals).sort((a,b) => b[1]-a[1])[0]?.[0];
+  const topCat = topCatName ? CAT_MAP[topCatName] : null;
+  const topPct = topCatName && total > 0 ? Math.round((catTotals[topCatName] / total) * 100) : 0;
+
+  document.getElementById('kpi-total').textContent = fc(total);
+  document.getElementById('kpi-total-sub').textContent = thisMonth.length > 0
+    ? `${thisMonth.length} movimiento${thisMonth.length !== 1 ? 's' : ''}`
+    : 'Sin gastos aún';
+
+  document.getElementById('kpi-avg').textContent = fc(avg);
+  document.getElementById('kpi-avg-sub').textContent = 'Por día este mes';
+
+  document.getElementById('kpi-top-cat').textContent = topCat ? `${topCat.icon} ${topCat.name}` : '—';
+  document.getElementById('kpi-top-sub').textContent = topCatName ? `${topPct}% del total` : 'Sin datos';
+
+  document.getElementById('kpi-count').textContent = thisMonth.length;
+
+  const change = getMonthOverMonthChange(expenses);
+  const changeEl = document.getElementById('kpi-change');
+  if (change !== null) {
+    const sign = change >= 0 ? '+' : '';
+    changeEl.textContent = `${sign}${change.toFixed(0)}% vs mes anterior`;
+    changeEl.className = 'kpi-change ' + (change >= 0 ? 'up' : 'down');
+  } else {
+    changeEl.textContent = 'Primer mes de datos';
+    changeEl.className = 'kpi-change';
+  }
+}
+
+/* ===== EXPENSE LIST ===== */
+function renderList(expenses) {
+  const search = document.getElementById('list-search').value.toLowerCase();
+  const catFilter = document.getElementById('list-filter-cat').value;
+  const sort = document.getElementById('list-sort').value;
+
+  let filtered = expenses.filter(e => {
+    if (catFilter && e.category !== catFilter) return false;
+    if (search && !e.description.toLowerCase().includes(search) && !e.category.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    switch(sort) {
+      case 'date-asc':    return new Date(a.date) - new Date(b.date);
+      case 'date-desc':   return new Date(b.date) - new Date(a.date);
+      case 'amount-desc': return b.amount - a.amount;
+      case 'amount-asc':  return a.amount - b.amount;
+    }
+  });
+
+  const listEl = document.getElementById('expense-list');
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">${expenses.length === 0 ? '📝' : '🔍'}</div>
+      <div class="empty-title">${expenses.length === 0 ? 'No hay gastos registrados' : 'Sin resultados'}</div>
+      <div class="empty-sub">${expenses.length === 0 ? 'Agrega tu primer gasto en la sección de Inicio' : 'Prueba con otro filtro o búsqueda'}</div>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(e => {
+    const cat = CAT_MAP[e.category] || { icon: '📦', color: '#6B7280' };
+    return `<div class="expense-row" data-id="${e.id}">
+      <div class="cat-pill" style="background:${cat.color}22">${cat.icon}</div>
+      <div class="expense-info">
+        <div class="expense-desc">${e.description}</div>
+        <div class="expense-meta">${e.category} · ${fd(e.date)}</div>
+      </div>
+      <div class="expense-amount">${fmtCurrencyFull.format(e.amount)}</div>
+      <button class="delete-btn" data-id="${e.id}" title="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+/* ===== NAV & HERO STATS ===== */
+function updateNavAndStats(expenses) {
+  const thisMonth = getThisMonthExpenses(expenses);
+  const total = thisMonth.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('nav-total-amount').textContent = fc(total);
+  document.getElementById('stat-total').textContent = fc(total);
+  document.getElementById('stat-count').textContent = expenses.length;
+  const activeCats = new Set(expenses.map(e => e.category)).size;
+  document.getElementById('stat-cats').textContent = activeCats;
+}
+
+/* ===== TIPS ENGINE ===== */
+const STATIC_TIPS = [
+  {
+    icon: '🎯', severity: 'info',
+    title: 'Establece un presupuesto mensual',
+    body: 'Define cuánto puedes gastar en cada categoría. La regla 50/30/20 sugiere: 50% necesidades, 30% deseos y 20% ahorro.'
+  },
+  {
+    icon: '💡', severity: 'success',
+    title: 'Registra cada gasto',
+    body: 'La consistencia es clave. Registrar todos tus gastos te dará una imagen clara de tu situación financiera real.'
+  },
+  {
+    icon: '🏦', severity: 'info',
+    title: 'Construye un fondo de emergencia',
+    body: 'Intenta tener entre 3 y 6 meses de gastos ahorrados para cubrir imprevistos sin endeudarte.'
+  },
+];
+
+function generateTips(expenses) {
+  if (expenses.length < 3) return STATIC_TIPS;
+
+  const tips = [];
+  const thisMonth = getThisMonthExpenses(expenses);
+  const total = thisMonth.reduce((s, e) => s + e.amount, 0);
+  const catTotals = getTotalByCategory(thisMonth);
+
+  // Tip 1: Category over 40%
+  for (const [cat, amt] of Object.entries(catTotals)) {
+    const pct = total > 0 ? (amt / total) * 100 : 0;
+    if (pct > 40) {
+      const catInfo = CAT_MAP[cat];
+      tips.push({
+        icon: catInfo?.icon || '⚠️', severity: 'warning',
+        title: `${cat} representa el ${pct.toFixed(0)}% de tu gasto`,
+        body: `Estás gastando ${fc(amt)} en ${cat} este mes. Considera revisar si puedes reducir este rubro para tener un presupuesto más equilibrado.`
+      });
+    }
+  }
+
+  // Tip 2: Month over month increase
+  const change = getMonthOverMonthChange(expenses);
+  if (change !== null && change > 20) {
+    tips.push({
+      icon: '📈', severity: 'warning',
+      title: `Tus gastos aumentaron un ${change.toFixed(0)}%`,
+      body: `Comparado con el mes anterior, estás gastando ${change.toFixed(0)}% más. Revisa qué categorías han aumentado y busca formas de ajustar.`
+    });
+  } else if (change !== null && change < -10) {
+    tips.push({
+      icon: '📉', severity: 'success',
+      title: `¡Redujiste tus gastos un ${Math.abs(change).toFixed(0)}%!`,
+      body: `Excelente trabajo. Este mes estás gastando menos que el anterior. Considera destinar el ahorro a un fondo de emergencia o inversión.`
+    });
+  }
+
+  // Tip 3: No health/education spending
+  const now = new Date();
+  const hasSalud = expenses.some(e => e.category === 'Salud');
+  const hasEduc = expenses.some(e => e.category === 'Educación');
+  if (!hasSalud) {
+    tips.push({
+      icon: '💊', severity: 'info',
+      title: 'Sin gastos en Salud registrados',
+      body: 'No olvides incluir tus gastos de salud (medicamentos, consultas, seguro). Tenerlos registrados te ayuda a planificar mejor.'
+    });
+  }
+  if (!hasEduc) {
+    tips.push({
+      icon: '📚', severity: 'info',
+      title: 'Invierte en tu educación',
+      body: 'No tienes gastos en educación. Considera destinar aunque sea un pequeño porcentaje de tus ingresos a cursos, libros o certificaciones.'
+    });
+  }
+
+  // Tip 4: High daily average
+  const avg = total / Math.max(new Date().getDate(), 1);
+  if (avg > 500 && thisMonth.length > 5) {
+    tips.push({
+      icon: '💸', severity: 'danger',
+      title: `Promedio diario de ${fc(avg)}`,
+      body: `Estás gastando en promedio ${fc(avg)} por día. Revisa tus gastos en entretenimiento y alimentación para encontrar oportunidades de ahorro.`
+    });
+  }
+
+  // Tip 5: Largest single expense
+  const largest = [...thisMonth].sort((a,b) => b.amount - a.amount)[0];
+  if (largest && largest.amount > 1000) {
+    tips.push({
+      icon: '🔎', severity: 'info',
+      title: 'Tu gasto más grande del mes',
+      body: `El gasto más grande fue de ${fmtCurrencyFull.format(largest.amount)} en "${largest.description}" (${largest.category}). ¿Era necesario o fue impulsivo?`
+    });
+  }
+
+  // Tip 6: Savings encouragement
+  if (thisMonth.length >= 5 && change !== null && change <= 0) {
+    tips.push({
+      icon: '🐷', severity: 'success',
+      title: '¡Vas por buen camino!',
+      body: 'Llevas buen control de tus gastos este mes. Considera automatizar una transferencia a ahorro al inicio de cada mes para asegurarte de cumplir tus metas.'
+    });
+  }
+
+  return tips.length > 0 ? tips : STATIC_TIPS;
+}
+
+function renderTips(expenses) {
+  const tips = generateTips(expenses);
+  const labels = { info: 'Info', warning: 'Atención', success: 'Excelente', danger: 'Alerta' };
+  document.getElementById('tips-grid').innerHTML = tips.map(t => `
+    <div class="tip-card ${t.severity} fade-in">
+      <div class="tip-icon">${t.icon}</div>
+      <div class="tip-badge ${t.severity}">${labels[t.severity] || t.severity}</div>
+      <div class="tip-title">${t.title}</div>
+      <div class="tip-body">${t.body}</div>
+    </div>
+  `).join('');
+}
+
+/* ===== TOAST ===== */
+let toastTimeout = null;
+let toastActionFn = null;
+
+function showToast(message, actionLabel, actionFn, duration = 3000) {
+  const toastEl = document.getElementById('toast');
+  const msgEl = document.getElementById('toast-msg');
+  const actionEl = document.getElementById('toast-action');
+
+  msgEl.textContent = message;
+  if (actionLabel && actionFn) {
+    actionEl.textContent = actionLabel;
+    actionEl.style.display = '';
+    toastActionFn = actionFn;
+  } else {
+    actionEl.style.display = 'none';
+    toastActionFn = null;
+  }
+
+  toastEl.classList.add('visible');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => toastEl.classList.remove('visible'), duration);
+}
+
+document.getElementById('toast-action').addEventListener('click', () => {
+  if (toastActionFn) { toastActionFn(); toastActionFn = null; }
+  document.getElementById('toast').classList.remove('visible');
+  clearTimeout(toastTimeout);
+});
+
+/* ===== MAIN REFRESH ===== */
+function refresh() {
+  const { expenses } = loadData();
+  updateNavAndStats(expenses);
+  renderKPIs(expenses);
+  renderPieChart(expenses);
+  renderBarChart(expenses);
+  renderList(expenses);
+  renderTips(expenses);
+}
+
+/* ===== FORM SUBMIT ===== */
+document.getElementById('expense-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const category = document.getElementById('f-category').value;
+  const description = document.getElementById('f-description').value.trim();
+  const date = document.getElementById('f-date').value;
+
+  if (!amount || amount <= 0 || !category || !description || !date) return;
+
+  const expense = {
+    id: `${Date.now()}-${Math.random().toString(36).substr(2,6)}`,
+    amount, category, description, date
+  };
+
+  addExpense(expense);
+  e.target.reset();
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  showToast('✓ Gasto agregado correctamente');
+
+  const data = loadData();
+  if (data.expenses.length === 1) {
+    setTimeout(() => document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' }), 400);
+  }
+});
+
+/* ===== DELETE (event delegation) ===== */
+document.getElementById('expense-list').addEventListener('click', e => {
+  const btn = e.target.closest('.delete-btn');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const { expenses } = loadData();
+  const expense = expenses.find(e => e.id === id);
+  if (!expense) return;
+
+  deleteExpense(id);
+  showToast('Gasto eliminado', 'Deshacer', () => undoDelete(expense), 5000);
+});
+
+/* ===== LIST CONTROLS ===== */
+['list-search', 'list-filter-cat', 'list-sort'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const { expenses } = loadData();
+    renderList(expenses);
+  });
+});
+
+/* ===== PERIOD SELECTOR ===== */
+document.querySelectorAll('.period-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = parseInt(btn.dataset.period);
+    const { expenses } = loadData();
+    renderBarChart(expenses);
+  });
+});
+
+/* ===== NAV INTERSECTION OBSERVER ===== */
+const sections = document.querySelectorAll('section');
+const navLinks = document.querySelectorAll('.nav-link');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const id = entry.target.id;
+      const link = document.querySelector(`.nav-link[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { threshold: 0.4 });
+sections.forEach(s => observer.observe(s));
+
+/* ===== INIT ===== */
+(function init() {
+  // Set today's date
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+  // Populate category selects
+  const catSelect = document.getElementById('f-category');
+  const filterSelect = document.getElementById('list-filter-cat');
+  CATEGORIES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = `${c.icon} ${c.name}`;
+    catSelect.appendChild(opt.cloneNode(true));
+    filterSelect.appendChild(opt);
+  });
+
+  // Initial render
+  refresh();
+})();
+</script>
+</body>
+</html>
