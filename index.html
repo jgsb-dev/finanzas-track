@@ -371,23 +371,28 @@
     /* Config Panel */
     .section-actions { max-width:1200px; margin:0 auto 24px; display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
     .config-panel { max-width:1200px; margin:0 auto 32px; background:var(--bg-card); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-lg); overflow:hidden; max-height:0; transition:max-height var(--t-slow),opacity var(--t-slow); opacity:0; }
-    .config-panel.open { max-height:900px; opacity:1; }
+    .config-panel.open { max-height:1200px; opacity:1; }
     .config-panel-inner { padding:28px; }
     .config-panel h4 { font-size:0.95rem; font-weight:700; margin-bottom:20px; color:var(--success); }
-    .goals-config-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-bottom:24px; }
+    .goals-config-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-bottom:16px; }
     .goal-config-row { background:var(--bg-elevated); border-radius:var(--radius-sm); padding:14px; display:flex; flex-direction:column; gap:10px; }
     .goal-config-header { display:flex; align-items:center; gap:8px; }
-    .goal-config-icon { font-size:1.1rem; }
-    .goal-config-name { flex:1; font-size:0.88rem; font-weight:700; }
+    .goal-icon-input { width:36px; text-align:center; font-size:1.1rem; padding:4px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:text; }
+    .goal-name-input { flex:1; font-size:0.88rem; font-weight:700; padding:5px 8px; background:var(--bg-input); border:1px solid var(--border); border-radius:var(--radius-sm); color:var(--text-primary); font-family:inherit; }
+    .goal-name-input:focus,.goal-icon-input:focus { outline:none; border-color:var(--border-focus); }
     .goal-config-toggle { width:32px; height:18px; border-radius:9px; border:none; cursor:pointer; transition:background var(--t); position:relative; flex-shrink:0; }
     .goal-config-toggle::after { content:''; position:absolute; width:14px; height:14px; border-radius:50%; background:white; top:2px; left:2px; transition:left var(--t); }
     .goal-config-toggle.on { background:var(--success); }
     .goal-config-toggle.on::after { left:16px; }
     .goal-config-toggle.off { background:var(--text-muted); }
+    .goal-delete-btn { width:24px; height:24px; border-radius:50%; border:none; background:rgba(239,68,68,0.1); color:var(--danger); font-size:0.75rem; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:background var(--t); }
+    .goal-delete-btn:hover { background:rgba(239,68,68,0.25); }
     .goal-config-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .goal-config-field label { font-size:0.72rem; margin-bottom:4px; }
     .goal-config-field input { padding:7px 10px; font-size:0.85rem; }
-    .config-save-row { display:flex; justify-content:flex-end; }
+    .config-save-row { display:flex; justify-content:space-between; align-items:center; }
+    .btn-add-goal { padding:9px 18px; border-radius:var(--radius-sm); border:1px dashed rgba(16,185,129,0.4); background:rgba(16,185,129,0.06); color:var(--success); font-family:inherit; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all var(--t); }
+    .btn-add-goal:hover { background:rgba(16,185,129,0.12); }
     .btn-save { padding:10px 28px; border-radius:var(--radius-sm); background:var(--grad-savings); border:none; color:white; font-family:inherit; font-size:0.9rem; font-weight:700; cursor:pointer; transition:transform var(--t); }
     .btn-save:hover { transform:translateY(-1px); }
 
@@ -724,7 +729,10 @@
     <div class="config-panel-inner">
       <h4>⚙️ Configurar porcentajes y montos meta</h4>
       <div class="goals-config-grid" id="goals-config-grid"></div>
-      <div class="config-save-row"><button class="btn-save" id="save-config-btn">Guardar configuración</button></div>
+      <div class="config-save-row">
+        <button class="btn-add-goal" id="add-goal-btn">+ Agregar meta</button>
+        <button class="btn-save" id="save-config-btn">Guardar configuración</button>
+      </div>
     </div>
   </div>
 
@@ -1293,40 +1301,65 @@ function renderGoalsGrid(){
 }
 
 /* ===== Config Panel ===== */
+const GOAL_COLORS=['#6366F1','#EC4899','#10B981','#F59E0B','#3B82F6','#A855F7','#EF4444','#14B8A6','#F97316','#84CC16'];
+function goalColorFor(idx){return GOAL_COLORS[idx%GOAL_COLORS.length];}
+function addGoalRow(g,idx){
+  const row=document.createElement('div');
+  row.className='goal-config-row';row.dataset.gid=g.id;
+  row.innerHTML=`<div class="goal-config-header">
+    <input type="text" class="goal-icon-input" value="${g.icon}" maxlength="2" placeholder="🎯">
+    <input type="text" class="goal-name-input" value="${g.name}" placeholder="Nombre de meta" maxlength="30">
+    <button class="goal-config-toggle ${g.active?'on':'off'}"></button>
+    <button class="goal-delete-btn" title="Eliminar">✕</button>
+  </div>
+  <div class="goal-config-fields">
+    <div class="goal-config-field"><label>% mensual del ingreso</label>
+      <input type="number" value="${g.targetPercent}" min="0" max="100" step="1" class="goal-pct-input" placeholder="0">
+    </div>
+    <div class="goal-config-field"><label>Monto meta total ($)</label>
+      <input type="number" value="${g.targetAmount||''}" min="0" step="1000" class="goal-amt-input" placeholder="0">
+    </div>
+  </div>`;
+  row.querySelector('.goal-config-toggle').addEventListener('click',btn=>{btn.target.classList.toggle('on');btn.target.classList.toggle('off');});
+  row.querySelector('.goal-delete-btn').addEventListener('click',()=>row.remove());
+  return row;
+}
 function renderConfigPanel(){
   const sv=loadSV();
-  document.getElementById('goals-config-grid').innerHTML=sv.goals.map(g=>`
-    <div class="goal-config-row">
-      <div class="goal-config-header">
-        <span class="goal-config-icon">${g.icon}</span>
-        <span class="goal-config-name">${g.name}</span>
-        <button class="goal-config-toggle ${g.active?'on':'off'}" data-gid="${g.id}"></button>
-      </div>
-      <div class="goal-config-fields">
-        <div class="goal-config-field">
-          <label>% mensual del ingreso</label>
-          <input type="number" value="${g.targetPercent}" min="0" max="100" step="1" class="goal-pct-input" data-gid="${g.id}" placeholder="0">
-        </div>
-        <div class="goal-config-field">
-          <label>Monto meta total ($)</label>
-          <input type="number" value="${g.targetAmount||''}" min="0" step="1000" class="goal-amt-input" data-gid="${g.id}" placeholder="0">
-        </div>
-      </div>
-    </div>`).join('');
-  document.querySelectorAll('.goal-config-toggle').forEach(btn=>{
-    btn.addEventListener('click',()=>{btn.classList.toggle('on');btn.classList.toggle('off');});
-  });
+  const grid=document.getElementById('goals-config-grid');
+  grid.innerHTML='';
+  sv.goals.forEach((g,i)=>grid.appendChild(addGoalRow(g,i)));
 }
 document.getElementById('toggle-config-btn').addEventListener('click',()=>{
   const panel=document.getElementById('config-panel'),open=panel.classList.contains('open');
   if(!open){renderConfigPanel();panel.classList.add('open');document.getElementById('toggle-config-btn').classList.add('active');}
   else{panel.classList.remove('open');document.getElementById('toggle-config-btn').classList.remove('active');}
 });
+document.getElementById('add-goal-btn').addEventListener('click',()=>{
+  const pid=currentProject?.id||'new';
+  const tempId=`${pid}-goal-${Date.now()}`;
+  const idx=document.querySelectorAll('.goal-config-row').length;
+  const newGoal={id:tempId,name:'',icon:'🎯',color:goalColorFor(idx),targetPercent:0,targetAmount:0,active:true,completedPercent:0};
+  const row=addGoalRow(newGoal,idx);
+  document.getElementById('goals-config-grid').appendChild(row);
+  row.querySelector('.goal-name-input').focus();
+});
 document.getElementById('save-config-btn').addEventListener('click',()=>{
   const sv=loadSV();
-  document.querySelectorAll('.goal-pct-input').forEach(inp=>{const g=sv.goals.find(x=>x.id===inp.dataset.gid);if(g)g.targetPercent=parseInt(inp.value)||0;});
-  document.querySelectorAll('.goal-amt-input').forEach(inp=>{const g=sv.goals.find(x=>x.id===inp.dataset.gid);if(g)g.targetAmount=parseFloat(inp.value)||0;});
-  document.querySelectorAll('.goal-config-toggle').forEach(btn=>{const g=sv.goals.find(x=>x.id===btn.dataset.gid);if(g)g.active=btn.classList.contains('on');});
+  const rows=document.querySelectorAll('.goal-config-row');
+  const newGoals=[];
+  rows.forEach((row,i)=>{
+    const name=row.querySelector('.goal-name-input').value.trim();
+    if(!name)return;
+    const icon=row.querySelector('.goal-icon-input').value.trim()||'🎯';
+    const pct=parseInt(row.querySelector('.goal-pct-input').value)||0;
+    const amt=parseFloat(row.querySelector('.goal-amt-input').value)||0;
+    const active=row.querySelector('.goal-config-toggle').classList.contains('on');
+    const existing=sv.goals.find(g=>g.id===row.dataset.gid);
+    if(existing){newGoals.push({...existing,icon,name,targetPercent:pct,targetAmount:amt,active});}
+    else{newGoals.push({id:row.dataset.gid,name,icon,color:goalColorFor(i),targetPercent:pct,targetAmount:amt,active,completedPercent:0});}
+  });
+  sv.goals=newGoals;
   saveSV(sv);document.getElementById('config-panel').classList.remove('open');document.getElementById('toggle-config-btn').classList.remove('active');
   savingsRefresh();showToast('✓ Metas guardadas');
 });
