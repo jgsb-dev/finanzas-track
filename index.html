@@ -541,6 +541,14 @@
     .dropdown-invite:hover { background:rgba(16,185,129,0.15); }
     .dropdown-logout { width:100%; padding:8px 12px; background:transparent; border:none; color:var(--text-muted); font-family:inherit; font-size:0.82rem; cursor:pointer; text-align:left; border-radius:var(--radius-sm); transition:all var(--t); }
     .dropdown-logout:hover { background:rgba(239,68,68,0.08); color:var(--danger); }
+    .dropdown-projects { border-top:1px solid var(--border); margin-top:4px; padding-top:6px; }
+    .dropdown-projects-label { padding:4px 12px; font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .dropdown-project-item { width:100%; padding:7px 12px; background:transparent; border:none; color:var(--text-secondary); font-family:inherit; font-size:0.82rem; cursor:pointer; text-align:left; border-radius:var(--radius-sm); transition:all var(--t); display:flex; align-items:center; gap:6px; }
+    .dropdown-project-item:hover { background:var(--bg-elevated); color:var(--text-primary); }
+    .dropdown-project-item.active { color:var(--success); font-weight:700; }
+    .dropdown-project-item .proj-dot { width:6px; height:6px; border-radius:50%; background:var(--success); flex-shrink:0; }
+    .dropdown-new-project { width:100%; padding:7px 12px; background:transparent; border:none; color:var(--text-muted); font-family:inherit; font-size:0.82rem; cursor:pointer; text-align:left; border-radius:var(--radius-sm); transition:all var(--t); }
+    .dropdown-new-project:hover { background:rgba(16,185,129,0.06); color:var(--success); }
   </style>
 </head>
 <body>
@@ -573,8 +581,12 @@
         <div class="dropdown-user-name" id="dd-name"></div>
         <div class="dropdown-user-email" id="dd-email"></div>
       </div>
-      <div class="dropdown-project">Proyecto: <span id="dd-project"></span></div>
       <button class="dropdown-invite" onclick="copyInviteLink()">🔗 Copiar enlace de invitación</button>
+      <div class="dropdown-projects">
+        <div class="dropdown-projects-label">Proyectos</div>
+        <div id="dd-project-list"></div>
+        <button class="dropdown-new-project" onclick="showNewProjectModal()">+ Nuevo proyecto</button>
+      </div>
       <button class="dropdown-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
   </div>
@@ -653,7 +665,7 @@
       <form id="contribution-form">
         <div class="form-group"><label>Cantidad total</label><div class="amount-wrapper"><span class="amount-prefix">$</span><input type="number" id="sv-amount" placeholder="0.00" min="0.01" step="0.01" required></div></div>
         <div class="form-row">
-          <div class="form-group"><label>Usuario</label><select id="sv-user" required><option value="jesus">Jesús</option><option value="natasha">Natasha</option></select></div>
+          <div class="form-group"><label>Usuario</label><select id="sv-user" required></select></div>
           <div class="form-group"><label>Cuenta bancaria</label><select id="sv-account"><option value="">Sin cuenta específica</option></select></div>
         </div>
         <div class="form-row">
@@ -686,18 +698,7 @@
   <!-- Income Banner -->
   <div class="income-banner">
     <span class="income-banner-label">📊 Ingreso mensual</span>
-    <div class="income-inputs">
-      <div class="income-field">
-        <span class="income-user-label"><span class="dot-jesus"></span> Jesús</span>
-        <span class="income-prefix">$</span>
-        <input type="number" id="income-jesus" placeholder="0" min="0" step="100">
-      </div>
-      <div class="income-field">
-        <span class="income-user-label"><span class="dot-natasha"></span> Natasha</span>
-        <span class="income-prefix">$</span>
-        <input type="number" id="income-natasha" placeholder="0" min="0" step="100">
-      </div>
-    </div>
+    <div class="income-inputs" id="income-inputs"></div>
     <div class="income-total">Total: <strong id="income-total-display">$0</strong></div>
     <button class="btn-outline" id="save-income-btn">Guardar</button>
   </div>
@@ -735,7 +736,7 @@
     <div class="list-header">
       <h3>Historial de aportaciones</h3>
       <div class="list-controls">
-        <select id="contrib-filter-user"><option value="">Ambos usuarios</option><option value="jesus">Jesús</option><option value="natasha">Natasha</option></select>
+        <select id="contrib-filter-user"><option value="">Todos</option></select>
       </div>
     </div>
     <div class="contrib-list" id="contrib-list"></div>
@@ -744,10 +745,8 @@
 
 <section id="savings-accounts">
   <div class="section-header"><h2 class="section-title">Cuentas bancarias</h2><p class="section-subtitle">Saldo real + asignación por meta de ahorro</p></div>
-  <div class="user-filter-tabs">
+  <div class="user-filter-tabs" id="user-filter-tabs">
     <button class="user-filter-tab active" data-user="all">Todas</button>
-    <button class="user-filter-tab" data-user="jesus">Jesús</button>
-    <button class="user-filter-tab" data-user="natasha">Natasha</button>
   </div>
   <div class="accounts-grid" id="accounts-grid"></div>
 
@@ -778,7 +777,7 @@
       <div class="form-group"><label>Nombre de cuenta</label><input type="text" id="af-name" placeholder="Ej. BBVA Débito" required maxlength="40"></div>
       <div class="form-group"><label>Banco</label><input type="text" id="af-bank" placeholder="Ej. BBVA, Banorte, HSBC..." maxlength="40"></div>
       <div class="form-row">
-        <div class="form-group"><label>Usuario</label><select id="af-user" required><option value="jesus">Jesús</option><option value="natasha">Natasha</option></select></div>
+        <div class="form-group"><label>Usuario</label><select id="af-user" required></select></div>
         <div class="form-group"><label>Saldo actual</label><div class="amount-wrapper"><span class="amount-prefix">$</span><input type="number" id="af-balance" placeholder="0" min="0" step="0.01" required></div></div>
       </div>
       <button type="submit" class="btn-primary savings-btn" style="margin-top:8px"><span id="af-submit-label">Agregar cuenta</span></button>
@@ -921,7 +920,7 @@ document.querySelectorAll('.period-btn').forEach(btn=>{btn.addEventListener('cli
    ============================================================ */
 /* ===== Supabase client ===== */
 const SB_URL = 'https://tbjrycyrlmdkxwkaqile.supabase.co';
-const SB_KEY = 'sb_publishable_JL3rAUwCKTk31Z-YlLWaoQ_G2BRdsbV';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRianJ5Y3lybG1ka3h3a2FxaWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDEzODksImV4cCI6MjA4OTI3NzM4OX0.K21BxsOSH_RJuKwZB7TkLMTLzk-qgRqyHWN3Svh9HXU';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 /* In-memory state (replaces localStorage) */
@@ -943,7 +942,36 @@ const GOALS_DEFAULT = [
 
 function loadSV(){
   if(svState) return svState;
-  return{goals:JSON.parse(JSON.stringify(GOALS_DEFAULT)),accounts:[],contributions:[],settings:{income:{jesus:0,natasha:0}},lastUsed:{userId:'jesus',accountId:null}};
+  return{goals:JSON.parse(JSON.stringify(GOALS_DEFAULT)),accounts:[],contributions:[],members:[],settings:{income:{}},lastUsed:{userId:'',accountId:null}};
+}
+const MEMBER_STYLES=[
+  {cssClass:'jesus',dotClass:'dot-jesus',chipBg:'rgba(99,102,241,0.12)',chipColor:'#A5B4FC',iconBg:'rgba(99,102,241,0.12)',iconColor:'#A5B4FC'},
+  {cssClass:'natasha',dotClass:'dot-natasha',chipBg:'rgba(236,72,153,0.12)',chipColor:'#F9A8D4',iconBg:'rgba(236,72,153,0.12)',iconColor:'#F9A8D4'},
+];
+function getMemberInfo(sv,userId){
+  return (sv.members||[]).find(m=>m.id===userId)||{id:userId,name:userId,initial:'?',cssClass:'other',chipBg:'rgba(107,114,128,0.12)',chipColor:'#9CA3AF',iconBg:'rgba(107,114,128,0.12)',iconColor:'#9CA3AF'};
+}
+function renderMemberUI(){
+  const sv=loadSV();
+  const members=sv.members||[];
+  if(!members.length)return;
+  const opts=members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  const svUser=document.getElementById('sv-user');if(svUser)svUser.innerHTML=opts;
+  const afUser=document.getElementById('af-user');if(afUser)afUser.innerHTML=opts;
+  const cfUser=document.getElementById('contrib-filter-user');if(cfUser)cfUser.innerHTML=`<option value="">Todos</option>${opts}`;
+  const incomeInputs=document.getElementById('income-inputs');
+  if(incomeInputs){
+    incomeInputs.innerHTML=members.map(m=>`<div class="income-field"><span class="income-user-label"><span class="${m.dotClass}"></span> ${m.name}</span><span class="income-prefix">$</span><input type="number" id="income-${m.id}" class="income-member-input" data-uid="${m.id}" placeholder="0" min="0" step="100"></div>`).join('');
+    document.querySelectorAll('.income-member-input').forEach(inp=>inp.addEventListener('input',updateIncomeTotal));
+  }
+  const tabsContainer=document.getElementById('user-filter-tabs');
+  if(tabsContainer){
+    tabsContainer.innerHTML=`<button class="user-filter-tab active" data-user="all">Todas</button>`+members.map(m=>`<button class="user-filter-tab" data-user="${m.id}">${m.name}</button>`).join('');
+    tabsContainer.querySelectorAll('.user-filter-tab').forEach(btn=>btn.addEventListener('click',()=>{
+      tabsContainer.querySelectorAll('.user-filter-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');accUserFilter=btn.dataset.user;renderAccountsGrid();
+    }));
+  }
 }
 function saveSV(d){
   svState=d;
@@ -958,13 +986,22 @@ async function initSupabase(){
   showSavingsLoader(true);
   try{
     const pid=currentProject.id;
-    const [goalsRes,accountsRes,contribsRes,allocsRes,incomeRes]=await Promise.all([
+    const [goalsRes,accountsRes,contribsRes,allocsRes,incomeRes,membersRes]=await Promise.all([
       sb.from('goals').select('*').eq('project_id',pid).order('sort_order'),
       sb.from('accounts').select('*').eq('project_id',pid),
       sb.from('contributions').select('*').eq('project_id',pid).order('date',{ascending:false}).order('created_at',{ascending:false}),
       sb.from('contribution_allocations').select('*'),
       sb.from('income_settings').select('*').eq('project_id',pid),
+      sb.from('project_members').select('user_id,role').eq('project_id',pid),
     ]);
+    const memberIds=(membersRes.data||[]).map(m=>m.user_id);
+    const profilesRes=memberIds.length?await sb.from('profiles').select('*').in('id',memberIds):{data:[]};
+    const members=(membersRes.data||[]).map((m,i)=>{
+      const p=(profilesRes.data||[]).find(p=>p.id===m.user_id)||{};
+      const name=[p.first_name,p.last_name].filter(Boolean).join(' ')||p.email||m.user_id;
+      const style=MEMBER_STYLES[i]||{cssClass:'other',dotClass:'dot-other',chipBg:'rgba(107,114,128,0.12)',chipColor:'#9CA3AF',iconBg:'rgba(107,114,128,0.12)',iconColor:'#9CA3AF'};
+      return{id:m.user_id,name,initial:(name[0]||'?').toUpperCase(),role:m.role,...style};
+    });
     // Group allocations by contribution_id
     const allocMap={};
     (allocsRes.data||[]).forEach(a=>{
@@ -982,13 +1019,14 @@ async function initSupabase(){
       ?dbGoals.map(g=>({id:g.id,name:g.name,icon:g.icon,color:g.color,targetPercent:parseFloat(g.target_percent),targetAmount:parseFloat(g.target_amount),active:g.active,completedAt:g.completed_at||undefined,completedPercent:parseFloat(g.completed_percent)||0}))
       :JSON.parse(JSON.stringify(GOALS_DEFAULT));
     const accounts=(accountsRes.data||[]).map(a=>({id:a.id,name:a.name,bank:a.bank||'',userId:a.user_id,balance:parseFloat(a.balance)||0}));
-    const income=incomeRes.data||[];
-    const lastUsed=JSON.parse(localStorage.getItem('sv_lastused')||'{"userId":"jesus","accountId":null}');
-    svState={goals,accounts,contributions,settings:{income:{jesus:parseFloat(income.find(i=>i.user_id==='jesus')?.amount)||0,natasha:parseFloat(income.find(i=>i.user_id==='natasha')?.amount)||0}},lastUsed};
+    const incomeMap={};(incomeRes.data||[]).forEach(i=>{incomeMap[i.user_id]=parseFloat(i.amount)||0;});
+    const lastUsed=JSON.parse(localStorage.getItem('sv_lastused')||'null')||{userId:members[0]?.id||'',accountId:null};
+    svState={goals,accounts,contributions,members,settings:{income:incomeMap},lastUsed};
     // If DB had no goals for this project, seed defaults now
     if(!dbGoals.length)await sb.from('goals').insert(svState.goals.map((g,i)=>({id:`${pid}-${g.id}`,name:g.name,icon:g.icon,color:g.color,target_percent:g.targetPercent,target_amount:g.targetAmount,active:g.active,completed_percent:0,sort_order:i,project_id:pid})));
     if(!dbGoals.length){const reloaded=await sb.from('goals').select('*').eq('project_id',pid).order('sort_order');svState.goals=reloaded.data.map(g=>({id:g.id,name:g.name,icon:g.icon,color:g.color,targetPercent:parseFloat(g.target_percent),targetAmount:parseFloat(g.target_amount),active:g.active,completedAt:g.completed_at||undefined,completedPercent:parseFloat(g.completed_percent)||0}));}
     svInitialized=true;
+    renderMemberUI();
   }catch(err){
     console.error('Supabase init error:',err);
     showToast('Error conectando a Supabase');
@@ -1024,7 +1062,8 @@ async function syncToSupabase(sv){
       if(allocRows.length)await sb.from('contribution_allocations').upsert(allocRows,{onConflict:'contribution_id,goal_id'});
     }
     // Income (project-scoped)
-    await sb.from('income_settings').upsert([{user_id:'jesus',amount:sv.settings.income.jesus||0,project_id:pid},{user_id:'natasha',amount:sv.settings.income.natasha||0,project_id:pid}]);
+    const incomeRows=Object.entries(sv.settings.income||{}).map(([uid,amt])=>({user_id:uid,amount:amt||0,project_id:pid}));
+    if(incomeRows.length)await sb.from('income_settings').upsert(incomeRows,{onConflict:'user_id,project_id'});
   }catch(err){console.error('Supabase sync error:',err);}
 }
 
@@ -1045,7 +1084,7 @@ function distributeAmount(amount, goals){
 function svThisMonth(contribs){const mk=thisMonthKey();return contribs.filter(c=>getMonthKey(c.date)===mk);}
 function goalAccumulated(contribs,goalId){return contribs.reduce((s,c)=>s+(c.allocation[goalId]||0),0);}
 function goalThisMonth(contribs,goalId){return svThisMonth(contribs).reduce((s,c)=>s+(c.allocation[goalId]||0),0);}
-function totalIncome(sv){return(sv.settings.income.jesus||0)+(sv.settings.income.natasha||0);}
+function totalIncome(sv){return Object.values(sv.settings?.income||{}).reduce((s,v)=>s+(v||0),0);}
 
 /* ===== Preview distribution on amount input ===== */
 let svPreviewGids = [];   // goal ids currently rendered in preview
@@ -1122,20 +1161,21 @@ function resetPreviewToAuto(){
 /* ===== Income banner ===== */
 function renderIncomeBanner(){
   const sv=loadSV();
-  document.getElementById('income-jesus').value=sv.settings.income.jesus||'';
-  document.getElementById('income-natasha').value=sv.settings.income.natasha||'';
+  (sv.members||[]).forEach(m=>{
+    const inp=document.getElementById(`income-${m.id}`);
+    if(inp)inp.value=sv.settings.income?.[m.id]||'';
+  });
   updateIncomeTotal();
 }
 function updateIncomeTotal(){
-  const j=parseFloat(document.getElementById('income-jesus').value)||0;
-  const n=parseFloat(document.getElementById('income-natasha').value)||0;
-  document.getElementById('income-total-display').textContent=fc(j+n);
+  const sv=loadSV();
+  const total=(sv.members||[]).reduce((sum,m)=>sum+(parseFloat(document.getElementById(`income-${m.id}`)?.value)||0),0);
+  document.getElementById('income-total-display').textContent=fc(total);
 }
-['income-jesus','income-natasha'].forEach(id=>document.getElementById(id).addEventListener('input',updateIncomeTotal));
 document.getElementById('save-income-btn').addEventListener('click',()=>{
   const sv=loadSV();
-  sv.settings.income.jesus=parseFloat(document.getElementById('income-jesus').value)||0;
-  sv.settings.income.natasha=parseFloat(document.getElementById('income-natasha').value)||0;
+  sv.settings.income=sv.settings.income||{};
+  (sv.members||[]).forEach(m=>{sv.settings.income[m.id]=parseFloat(document.getElementById(`income-${m.id}`)?.value)||0;});
   saveSV(sv);savingsRefresh();showToast('✓ Ingreso guardado');
 });
 
@@ -1212,8 +1252,7 @@ function renderGoalsGrid(){
     const remaining=goal.targetAmount>0?Math.max(goal.targetAmount-totalAcc,0):null;
     const moBarColor=moBarPct>=100?'#10B981':goal.color;
     const totalBarColor=totalBarPct!==null&&totalBarPct>=100?'#10B981':goal.color;
-    const jesusAmt=contribsForMonth(sv.contributions,mk).filter(c=>c.userId==='jesus').reduce((s,c)=>s+(c.allocation[goal.id]||0),0);
-    const natashaAmt=contribsForMonth(sv.contributions,mk).filter(c=>c.userId==='natasha').reduce((s,c)=>s+(c.allocation[goal.id]||0),0);
+    const memberAmts=(sv.members||[]).map(m=>({...m,amt:contribsForMonth(sv.contributions,mk).filter(c=>c.userId===m.id).reduce((s,c)=>s+(c.allocation[goal.id]||0),0)}));
     const prevMoGoal=contribsForMonth(sv.contributions,pmk).reduce((s,c)=>s+(c.allocation[goal.id]||0),0);
     const momGoal=prevMoGoal>0?Math.round(((thisMoAmt-prevMoGoal)/prevMoGoal)*100):null;
     return`<div class="goal-card">
@@ -1242,9 +1281,8 @@ function renderGoalsGrid(){
         <div class="goal-remaining">Faltan: <strong>${fc(remaining)}</strong>${remaining===0?' 🎉':''}</div>
       </div>`:'<div class="goal-total-block"><div style="font-size:0.75rem;color:var(--text-muted)">Total acumulado: <strong style="color:var(--text-primary)">'+ fc(totalAcc) +'</strong> &nbsp;·&nbsp; Sin monto meta configurado</div></div>'}
       <div class="goal-users-row">
-        ${jesusAmt>0?`<div class="user-contrib-chip jesus">J: ${fc(jesusAmt)}</div>`:''}
-        ${natashaAmt>0?`<div class="user-contrib-chip natasha">N: ${fc(natashaAmt)}</div>`:''}
-        ${jesusAmt===0&&natashaAmt===0?`<span style="font-size:0.75rem;color:var(--text-muted)">Sin aportaciones este mes</span>`:''}
+        ${memberAmts.filter(m=>m.amt>0).map(m=>`<div class="user-contrib-chip ${m.cssClass}">${m.initial}: ${fc(m.amt)}</div>`).join('')}
+        ${memberAmts.every(m=>m.amt===0)?`<span style="font-size:0.75rem;color:var(--text-muted)">Sin aportaciones este mes</span>`:''}
         ${momGoal!==null?`<span class="goal-mom-delta ${momGoal>=0?'up':'down'}">${momGoal>=0?'↑':'↓'}${Math.abs(momGoal)}% vs ${monthLabelShort(pmk)}</span>`:''}
       </div>
     </div>`;
@@ -1295,12 +1333,11 @@ function populateAccountSelect(){
   const sv=loadSV();
   const sel=document.getElementById('sv-account');
   sel.innerHTML='<option value="">Sin cuenta específica</option>';
-  // Show ALL accounts regardless of user, grouped by owner
-  const byUser={jesus:sv.accounts.filter(a=>a.userId==='jesus'),natasha:sv.accounts.filter(a=>a.userId==='natasha')};
-  [['jesus','Jesús'],['natasha','Natasha']].forEach(([uid,label])=>{
-    if(!byUser[uid].length)return;
-    const grp=document.createElement('optgroup');grp.label=label;
-    byUser[uid].forEach(a=>{
+  (sv.members||[]).forEach(m=>{
+    const memberAccounts=sv.accounts.filter(a=>a.userId===m.id);
+    if(!memberAccounts.length)return;
+    const grp=document.createElement('optgroup');grp.label=m.name;
+    memberAccounts.forEach(a=>{
       const opt=document.createElement('option');opt.value=a.id;
       opt.textContent=`${a.name}${a.bank?' ('+a.bank+')':''}`;
       if(a.id===sv.lastUsed.accountId)opt.selected=true;
@@ -1309,7 +1346,7 @@ function populateAccountSelect(){
     sel.appendChild(grp);
   });
 }
-function applyLastUsed(){const sv=loadSV();document.getElementById('sv-user').value=sv.lastUsed.userId||'jesus';populateAccountSelect();}
+function applyLastUsed(){const sv=loadSV();document.getElementById('sv-user').value=sv.lastUsed.userId||sv.members?.[0]?.id||'';populateAccountSelect();}
 document.getElementById('sv-user').addEventListener('change',function(){populateAccountSelect();});
 
 document.getElementById('contribution-form').addEventListener('submit',e=>{
@@ -1360,6 +1397,7 @@ function resolveGoalMeta(c, sv, gid){
 
 function renderContribHistory(){
   const sv=loadSV();
+  const memberMap=Object.fromEntries((sv.members||[]).map(m=>[m.id,m]));
   const userF=document.getElementById('contrib-filter-user').value;
   const income=totalIncome(sv);
   const active=sv.goals.filter(g=>g.active);
@@ -1401,10 +1439,8 @@ function renderContribHistory(){
     const topAlloc=Object.entries(monthAlloc).sort((a,b)=>b[1].amt-a[1].amt).slice(0,4);
     const allocChips=topAlloc.map(([,v])=>`<span class="month-alloc-chip" style="background:${v.meta.color}20;color:${v.meta.color}">${v.meta.icon} ${fc(v.amt)}</span>`).join('');
 
-    // Jesus / Natasha breakdown for this month
-    const jTotal=contribs.filter(c=>c.userId==='jesus').reduce((s,c)=>s+c.amount,0);
-    const nTotal=contribs.filter(c=>c.userId==='natasha').reduce((s,c)=>s+c.amount,0);
-    const userChips=`${jTotal>0?`<span style="font-size:0.72rem;padding:2px 7px;border-radius:100px;background:rgba(99,102,241,0.12);color:#A5B4FC">J: ${fc(jTotal)}</span>`:''}${nTotal>0?`<span style="font-size:0.72rem;padding:2px 7px;border-radius:100px;background:rgba(236,72,153,0.12);color:#F9A8D4">N: ${fc(nTotal)}</span>`:''}`;
+    // Member breakdown for this month
+    const userChips=(sv.members||[]).map(m=>{const t=contribs.filter(c=>c.userId===m.id).reduce((s,c)=>s+c.amount,0);return t>0?`<span style="font-size:0.72rem;padding:2px 7px;border-radius:100px;background:${m.chipBg};color:${m.chipColor}">${m.initial}: ${fc(t)}</span>`:''}).join('');
 
     const barW=pct!==null?Math.min(pct,100):0;
 
@@ -1425,7 +1461,8 @@ function renderContribHistory(){
       </div>
       <div class="month-group-rows">
         ${contribs.map(c=>{
-          const userName=c.userId==='jesus'?'Jesús':'Natasha';
+          const member=memberMap[c.userId]||{name:c.userId,initial:'?',iconBg:'rgba(107,114,128,0.12)',iconColor:'#9CA3AF'};
+          const userName=member.name;
           const acc=c.accountId?sv.accounts.find(a=>a.id===c.accountId):null;
           const chips=Object.entries(c.allocation||{}).map(([gid,amt])=>{
             if(amt<=0)return'';
@@ -1433,7 +1470,7 @@ function renderContribHistory(){
             return`<span class="contrib-chip" style="background:${meta.color}20;color:${meta.color}">${meta.icon} ${fc(amt)}</span>`;
           }).join('');
           return`<div class="contrib-row">
-            <div class="contrib-icon" style="background:${c.userId==='jesus'?'rgba(99,102,241,0.12)':'rgba(236,72,153,0.12);'};font-size:0.82rem;font-weight:800;color:${c.userId==='jesus'?'#A5B4FC':'#F9A8D4'}">${c.userId==='jesus'?'J':'N'}</div>
+            <div class="contrib-icon" style="background:${member.iconBg};font-size:0.82rem;font-weight:800;color:${member.iconColor}">${member.initial}</div>
             <div class="contrib-info">
               <div class="contrib-title">${userName}${c.note?` · <em style="font-style:normal;color:var(--text-secondary)">${c.note}</em>`:''}</div>
               <div class="contrib-meta">${fd(c.date)}${acc?` · ${acc.name}${acc.bank?' ('+acc.bank+')':''}`:''}</div>
@@ -1475,6 +1512,7 @@ function getGoalAllocForBalance(balance,goals){
 
 function renderAccountsGrid(){
   const sv=loadSV();
+  const memberMap=Object.fromEntries((sv.members||[]).map(m=>[m.id,m]));
   let accounts=sv.accounts;
   if(accUserFilter!=='all')accounts=accounts.filter(a=>a.userId===accUserFilter);
   const active=sv.goals.filter(g=>g.active&&g.targetPercent>0);
@@ -1495,7 +1533,7 @@ function renderAccountsGrid(){
       <div class="account-card-header">
         <div class="account-icon">🏦</div>
         <div><div class="account-name">${acc.name}</div><div class="account-bank">${acc.bank||'Sin banco'}</div></div>
-        <span class="account-user-tag ${acc.userId}">${acc.userId==='jesus'?'Jesús':'Natasha'}</span>
+        <span class="account-user-tag ${(memberMap[acc.userId]||{cssClass:'other'}).cssClass}">${(memberMap[acc.userId]||{name:acc.userId}).name}</span>
       </div>
       <div class="account-balance">${fmtCF.format(acc.balance||0)}</div>
       <div class="account-balance-label">Saldo actual</div>
@@ -1551,12 +1589,7 @@ function renderAllocChart(){
   });
 }
 
-document.querySelectorAll('.user-filter-tab').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.user-filter-tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');accUserFilter=btn.dataset.user;renderAccountsGrid();
-  });
-});
+// Account filter tab listeners are set dynamically in renderMemberUI()
 
 function openAccountModal(id=null){
   const sv=loadSV();
@@ -1573,7 +1606,7 @@ function openAccountModal(id=null){
     document.getElementById('account-modal-title').textContent='Nueva cuenta';
     document.getElementById('af-submit-label').textContent='Agregar cuenta';
     document.getElementById('account-form').reset();
-    document.getElementById('af-user').value=loadSV().lastUsed.userId||'jesus';
+    document.getElementById('af-user').value=loadSV().lastUsed.userId||loadSV().members?.[0]?.id||'';
   }
   document.getElementById('account-modal').classList.add('open');
 }
@@ -1730,6 +1763,7 @@ document.addEventListener('DOMContentLoaded', function init(){
    ============================================================ */
 let currentUser = null;
 let currentProject = null;
+let allProjects = [];
 
 async function initAuth(){
   // Capture invite token from URL before OAuth clears params
@@ -1750,9 +1784,9 @@ async function handleSession(session){
   const joinToken=localStorage.getItem('pending_join_token');
   if(joinToken){ await joinProjectByToken(joinToken); localStorage.removeItem('pending_join_token'); }
 
-  const projects=await loadUserProjects();
-  if(!projects.length){ showProjectScreen(); }
-  else{ currentProject=projects[0]; showApp(); }
+  allProjects=await loadUserProjects();
+  if(!allProjects.length){ showProjectScreen(); }
+  else{ currentProject=allProjects[0]; showApp(); }
 }
 
 async function loadUserProjects(){
@@ -1767,18 +1801,33 @@ async function createProject(name){
   if(error||!project){showToast('Error creando proyecto');return;}
   await sb.from('project_members').insert({project_id:project.id,user_id:currentUser.id,role:'owner'});
   currentProject={...project,role:'owner'};
+  allProjects=await loadUserProjects();
   svInitialized=false; svState=null;
   showApp();
+}
+async function switchProject(project){
+  if(currentProject?.id===project.id)return;
+  currentProject=project;
+  svInitialized=false; svState=null;
+  document.getElementById('user-dropdown').classList.remove('open');
+  renderNavUser();
+  if(currentMode==='savings') initSupabase();
+}
+function showNewProjectModal(){
+  document.getElementById('user-dropdown').classList.remove('open');
+  svState=null; svInitialized=false; currentProject=null;
+  showProjectScreen();
 }
 
 async function joinProjectByToken(token){
   // token can be the full URL or just the token value
   const match=token.match(/[?&]join=([^&]+)/);
   const t=match?match[1]:token.trim();
-  const {data:project}=await sb.from('savings_projects').select('*').eq('invite_token',t).single();
+  const {data:project}=await sb.rpc('get_project_by_invite_token',{p_token:t});
   if(!project){showToast('Enlace de invitación inválido');return;}
   await sb.from('project_members').upsert({project_id:project.id,user_id:currentUser.id,role:'member'},{onConflict:'project_id,user_id'});
   currentProject={...project,role:'member'};
+  allProjects=await loadUserProjects();
   svInitialized=false; svState=null;
 }
 
@@ -1819,7 +1868,10 @@ function renderNavUser(){
   document.getElementById('nav-project-label').textContent=currentProject?.name||'';
   document.getElementById('dd-name').textContent=[currentUser.first_name,currentUser.last_name].filter(Boolean).join(' ')||first;
   document.getElementById('dd-email').textContent=currentUser.email;
-  document.getElementById('dd-project').textContent=currentProject?.name||'';
+  const list=document.getElementById('dd-project-list');
+  if(list){
+    list.innerHTML=(allProjects||[]).map(p=>`<button class="dropdown-project-item${p.id===currentProject?.id?' active':''}" onclick="switchProject(${JSON.stringify(p).replace(/"/g,'&quot;')})"><span class="proj-dot" style="${p.id===currentProject?.id?'':'background:var(--border)'}"></span>${p.name}</button>`).join('');
+  }
 }
 
 function toggleUserDropdown(){
@@ -1840,7 +1892,7 @@ async function copyInviteLink(){
 
 function doLogout(){
   sb.auth.signOut();
-  svState=null; svInitialized=false; currentUser=null; currentProject=null;
+  svState=null; svInitialized=false; currentUser=null; currentProject=null; allProjects=[];
 }
 
 // Auth event listeners — set up after DOM is ready
@@ -1870,8 +1922,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!val)return;
     document.getElementById('btn-join-project').textContent='Uniéndome…';
     await joinProjectByToken(val);
-    const projects=await loadUserProjects();
-    if(projects.length){ currentProject=projects[projects.length-1]; showApp(); }
+    allProjects=await loadUserProjects();
+    if(allProjects.length){ currentProject=allProjects[allProjects.length-1]; showApp(); }
     else{ document.getElementById('btn-join-project').textContent='Unirme'; }
   });
 });
