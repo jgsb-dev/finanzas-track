@@ -1843,34 +1843,37 @@ function doLogout(){
   svState=null; svInitialized=false; currentUser=null; currentProject=null;
 }
 
-// Google login
-document.getElementById('btn-google-login').addEventListener('click',async()=>{
-  await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin+window.location.pathname}});
-});
-
-// Project setup tabs
-document.querySelectorAll('.psc-tab').forEach(tab=>{
-  tab.addEventListener('click',()=>{
-    document.querySelectorAll('.psc-tab').forEach(t=>t.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('psc-create').style.display=tab.dataset.tab==='create'?'flex':'none';
-    document.getElementById('psc-join').style.display=tab.dataset.tab==='join'?'flex':'none';
+// Auth event listeners — set up after DOM is ready
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('btn-google-login').addEventListener('click',async()=>{
+    await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin+window.location.pathname}});
   });
-});
-document.getElementById('btn-create-project').addEventListener('click',async()=>{
-  const name=document.getElementById('psc-project-name').value.trim();
-  if(!name)return;
-  document.getElementById('btn-create-project').textContent='Creando…';
-  await createProject(name);
-});
-document.getElementById('btn-join-project').addEventListener('click',async()=>{
-  const val=document.getElementById('psc-join-token').value.trim();
-  if(!val)return;
-  document.getElementById('btn-join-project').textContent='Uniéndome…';
-  await joinProjectByToken(val);
-  const projects=await loadUserProjects();
-  if(projects.length){ currentProject=projects[projects.length-1]; showApp(); }
-  else{ document.getElementById('btn-join-project').textContent='Unirme'; }
+
+  document.querySelectorAll('.psc-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.psc-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('psc-create').style.display=tab.dataset.tab==='create'?'flex':'none';
+      document.getElementById('psc-join').style.display=tab.dataset.tab==='join'?'flex':'none';
+    });
+  });
+
+  document.getElementById('btn-create-project').addEventListener('click',async()=>{
+    const name=document.getElementById('psc-project-name').value.trim();
+    if(!name)return;
+    document.getElementById('btn-create-project').textContent='Creando…';
+    await createProject(name);
+  });
+
+  document.getElementById('btn-join-project').addEventListener('click',async()=>{
+    const val=document.getElementById('psc-join-token').value.trim();
+    if(!val)return;
+    document.getElementById('btn-join-project').textContent='Uniéndome…';
+    await joinProjectByToken(val);
+    const projects=await loadUserProjects();
+    if(projects.length){ currentProject=projects[projects.length-1]; showApp(); }
+    else{ document.getElementById('btn-join-project').textContent='Unirme'; }
+  });
 });
 </script>
 
