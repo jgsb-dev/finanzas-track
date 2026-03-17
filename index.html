@@ -1709,7 +1709,7 @@ document.querySelectorAll('#gastos-view section').forEach(s=>gObs.observe(s));
 /* ============================================================
    INIT
    ============================================================ */
-(function init(){
+document.addEventListener('DOMContentLoaded', function init(){
   // Hide everything until auth resolves
   document.getElementById('main-nav').style.display='none';
   document.getElementById('gastos-view').style.display='none';
@@ -1723,7 +1723,7 @@ document.querySelectorAll('#gastos-view section').forEach(s=>gObs.observe(s));
   CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=`${c.icon} ${c.name}`;catSel.appendChild(o.cloneNode(true));filterSel.appendChild(o);});
   refresh();
   initAuth();
-})();
+});
 
 /* ============================================================
    AUTH MODULE
