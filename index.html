@@ -549,6 +549,8 @@
     .dropdown-project-item .proj-dot { width:6px; height:6px; border-radius:50%; background:var(--success); flex-shrink:0; }
     .dropdown-new-project { width:100%; padding:7px 12px; background:transparent; border:none; color:var(--text-muted); font-family:inherit; font-size:0.82rem; cursor:pointer; text-align:left; border-radius:var(--radius-sm); transition:all var(--t); }
     .dropdown-new-project:hover { background:rgba(16,185,129,0.06); color:var(--success); }
+    .dropdown-delete-project { width:100%; padding:8px 12px; background:transparent; border:none; color:var(--text-muted); font-family:inherit; font-size:0.82rem; cursor:pointer; text-align:left; border-radius:var(--radius-sm); transition:all var(--t); margin-bottom:4px; }
+    .dropdown-delete-project:hover { background:rgba(239,68,68,0.08); color:var(--danger); }
   </style>
 </head>
 <body>
@@ -587,6 +589,7 @@
         <div id="dd-project-list"></div>
         <button class="dropdown-new-project" onclick="showNewProjectModal()">+ Nuevo proyecto</button>
       </div>
+      <button class="dropdown-delete-project" id="dd-delete-project" onclick="deleteOrLeaveProject()">🗑 Eliminar proyecto</button>
       <button class="dropdown-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
   </div>
@@ -1868,6 +1871,8 @@ function renderNavUser(){
   document.getElementById('nav-project-label').textContent=currentProject?.name||'';
   document.getElementById('dd-name').textContent=[currentUser.first_name,currentUser.last_name].filter(Boolean).join(' ')||first;
   document.getElementById('dd-email').textContent=currentUser.email;
+  const deleteBtn=document.getElementById('dd-delete-project');
+  if(deleteBtn)deleteBtn.textContent=currentProject?.role==='owner'?'🗑 Eliminar proyecto':'🚪 Abandonar proyecto';
   const list=document.getElementById('dd-project-list');
   if(list){
     list.innerHTML=(allProjects||[]).map(p=>`<button class="dropdown-project-item${p.id===currentProject?.id?' active':''}" onclick="switchProject(${JSON.stringify(p).replace(/"/g,'&quot;')})"><span class="proj-dot" style="${p.id===currentProject?.id?'':'background:var(--border)'}"></span>${p.name}</button>`).join('');
@@ -1890,6 +1895,23 @@ async function copyInviteLink(){
   document.getElementById('user-dropdown').classList.remove('open');
 }
 
+async function deleteOrLeaveProject(){
+  if(!currentProject)return;
+  const isOwner=currentProject.role==='owner';
+  const msg=isOwner
+    ?`¿Eliminar "${currentProject.name}"? Se borrarán todos los datos permanentemente.`
+    :`¿Abandonar "${currentProject.name}"?`;
+  if(!confirm(msg))return;
+  document.getElementById('user-dropdown').classList.remove('open');
+  const fn=isOwner?'delete_project':'leave_project';
+  const {error}=await sb.rpc(fn,{p_id:currentProject.id});
+  if(error){showToast('Error: '+error.message);return;}
+  svState=null;svInitialized=false;currentProject=null;
+  allProjects=await loadUserProjects();
+  if(allProjects.length){currentProject=allProjects[0];showApp();}
+  else{showProjectScreen();}
+  showToast(isOwner?'Proyecto eliminado':'Saliste del proyecto');
+}
 function doLogout(){
   sb.auth.signOut();
   svState=null; svInitialized=false; currentUser=null; currentProject=null; allProjects=[];
